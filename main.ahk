@@ -1,7 +1,7 @@
 #include <mustExec>
 debug.init()
 
-global config := new configLoader("settings.json")
+global progConfig := new configLoader("settings.json")
 loginGui.init()
 return
 

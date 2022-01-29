@@ -1,6 +1,5 @@
 class MyGui {
-	init(byref session, links) {
-		this.session := session
+	init(links) {
 		this.links := links
 		this.gui := new EzGui(this, {title: "Osu! Downloader", w:500, h:300})
 		this.gui.inithooks()
@@ -49,7 +48,7 @@ class MyGui {
 		link := RegExReplace(link, "#osu\/\d+", "") "/download"
 
 		http := new requests("GET", link)
-		http.cookies["osu_session"] := this.session
+		http.cookies["osu_session"] := progConfig.data.session
 		http.headers["Referer"] := "https://osu.ppy.sh/"
 		data := http.send()
 		url := data.headers["Location"]
@@ -57,7 +56,7 @@ class MyGui {
 
 		if (data.status == 302 && objurl.params.fs) {
 			this.gui.get("Current").set("Current: " objUrl.params.fs)
-			file := new FileDownloader(url, "R:/TempCode/" objUrl.params.fs, ObjBindMethod(this, "progress"))
+			file := new FileDownloader(url, progConfig.data.path objUrl.params.fs, ObjBindMethod(this, "progress"))
 		} else {
 			debug.print("error :(")
 			return
@@ -90,9 +89,9 @@ class loginGui {
 
 	buildGui(g) {
 		g.add("text",, "Osu session cookie")
-		g.add("Edit", "vsession w320 r1 Password", config.data.session)
+		g.add("Edit", "vsession w320 r1 Password", progConfig.data.session)
 		g.add("text",, "Download links")
-		g.add("Edit", "vlinks w320 r15", "https://osu.ppy.sh/beatmapsets/1396357/download")
+		g.add("Edit", "vlinks w320 r15")
 		g.add("Button", "vSubmit w320 h30", "Login").on("submit")
 	}
 
@@ -111,27 +110,28 @@ class loginGui {
 	}
 
 	request(e, http) {
-		if (http.status != 200) {
+		failed := false
+		links := this.gui.get("links").get()
+		if !links {
+			msgbox links?
+			failed := true
+		}
+
+		if (http.status != 200 || failed) {
 			e.set("Login failed").enable().option()
 			this.gui.get("links").enable()
 			this.gui.get("session").enable()
 			return
 		}
 
-		links := this.gui.get("links").get()
-		if !links {
-			msgbox links?
-			return
-		}
+		links := SplitLine(Trim(links, " `n`t`r"))
 
-		links := StrSplit(links, "`n", "`r")
-
-		if !config.data.session
+		if !progConfig.data.session
 			Msgbox Your session cookie will be stored on settings.json
 
-		config.data.session := this.session
-		config.save()
+		progConfig.data.session := this.session
+		progConfig.save()
 		this.gui.visible := false
-		MyGui.init(this.session, links)
+		MyGui.init(links)
 	}
 }
